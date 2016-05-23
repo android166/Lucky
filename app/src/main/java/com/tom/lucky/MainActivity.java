@@ -1,5 +1,8 @@
 package com.tom.lucky;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -16,15 +19,19 @@ import com.firebase.client.DataSnapshot;
 import com.firebase.client.Firebase;
 import com.firebase.client.FirebaseError;
 
+import java.util.Random;
+
 public class MainActivity extends AppCompatActivity {
+    Random random = new Random();
+    private AlertDialog dialog;
+    private ArrayAdapter<String> adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ListView list = (ListView) findViewById(R.id.listView);
-        final ArrayAdapter<String> adapter =
-                new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1);
+        adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1);
         list.setAdapter(adapter);
         Firebase.setAndroidContext(this);
         String url = "https://project-7931157122344089396.firebaseio.com/pool";
@@ -64,12 +71,50 @@ public class MainActivity extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                int count = adapter.getCount();
+                final int num = random.nextInt(count);
+                dialog = new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("抽獎中")
+                        .setMessage(adapter.getItem(num))
+                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                adapter.remove(adapter.getItem(num));
+                            }
+                        }).show();
+                new DrawingTask().execute(adapter.getCount());
             }
         });
+
     }
 
+    class DrawingTask extends AsyncTask<Integer, Integer, Integer>{
+
+        @Override
+        protected Integer doInBackground(Integer... params) {
+            int r = 0;
+            for (int i=0;i<100;i++){
+                r = random.nextInt(params[0]);
+                publishProgress(r);
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            return r;
+        }
+
+        @Override
+        protected void onPostExecute(Integer integer) {
+            dialog.setTitle("中獎人");
+        }
+
+        @Override
+        protected void onProgressUpdate(Integer... values) {
+            dialog.setMessage(adapter.getItem(values[0]));
+        }
+    }
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
